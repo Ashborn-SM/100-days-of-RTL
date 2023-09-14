@@ -15,12 +15,8 @@ module FA(
     input a, b, cin
     );
     
-    wire p, g, t;
-    
-    HA h(p, g, a, b);
-    xor(s, p, cin);
-    and(t, p, cin);
-    or(cout, g, t);
+    assign s = a ^ b ^ cin;
+    assign cout =  (a & b) | (a ^ b) & cin;
         
 endmodule
 
@@ -34,7 +30,7 @@ module braun_multiplier(
          a0b3, a1b3, a2b3, a3b2,
          a3b3;
     wire s0, s1, s3, s4, s5;
-    wire c0, c1, c2, c3, c4, c5, c6, c7, c8, c9;
+    wire c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10;
     
     and(o[0], i0[0], i1[0]);
     
@@ -70,8 +66,8 @@ module braun_multiplier(
     FA f6(s5, c8, a2b3, a3b2, c5);
     
     HA h4(o[4], c9, s4, c6);
-    FA f7(o[5], c9, s5, c9, c7);
-    FA f8(o[6], o[7], a3b3, c9, c8);
+    FA f7(o[5], c10, s5, c9, c7);
+    FA f8(o[6], o[7], a3b3, c10, c8);
     
 endmodule
 
