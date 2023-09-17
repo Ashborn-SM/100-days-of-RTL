@@ -20,7 +20,7 @@ module palindrome_detector
     always@(posedge clk) begin
         if(reset) begin
             time_t <= {BITS{1'b0}};
-            counter <= {half_size{1'b0}};
+            counter <= {counter_size{1'b0}};
             set <= 1'b0;
             cmp_1 <= {half_size{1'b0}};
             cmp_2 <= {half_size{1'b0}};
