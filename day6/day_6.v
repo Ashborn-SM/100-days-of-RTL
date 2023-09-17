@@ -26,7 +26,7 @@ module palindrome_detector
             cmp_2 <= {half_size{1'b0}};
         end
         else begin
-            time_t = {time_t[BITS-1-1:0], in};
+            time_t <= {time_t[BITS-1-1:0], in};
             counter <= (counter == BITS-1)? counter: counter + 1;
         end
     end
