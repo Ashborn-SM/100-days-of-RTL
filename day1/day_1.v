@@ -38,7 +38,7 @@ module CLA(
     assign c4 = g3 | (p3 & (g2 | (p2 & (g1 | (p1 & g0) | (p1 & p0 & c0)))));
     assign c5 = g4 | (p4 & (g3 | (p3 & (g2 | (p2 & (g1 | (p1 & g0) | (p1 & p0 & c0)))))));
     assign c6 = g5 | (p5 & (g4 | (p4 & (g3 | (p3 & (g2 | (p2 & (g1 | (p1 & g0) | (p1 & p0 & c0)))))))));
-    assign c7 = g6 | (p6 & (g5 | (p5 & g4 | (p4 & (g3 | (p3 & (g2 | (p2 & (g1 | (p1 & g0) | (p1 & p0 & c0))))))))));
-    assign c8 = g7 | (p7 & (g6 | (p6 & (g5 | (p5 & g4 | (p4 & (g3 | (p3 & (g2 | (p2 & (g1 | (p1 & g0) | (p1 & p0 & c0))))))))))));
+    assign c7 = g6 | (p6 & (g5 | (p5 & (g4 | (p4 & (g3 | (p3 & (g2 | (p2 & (g1 | (p1 & g0) | (p1 & p0 & c0))))))))));
+    assign c8 = g7 | (p7 & (g6 | (p6 & (g5 | (p5 & (g4 | (p4 & (g3 | (p3 & (g2 | (p2 & (g1 | (p1 & g0) | (p1 & p0 & c0))))))))))));
     
 endmodule
