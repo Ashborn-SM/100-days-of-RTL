@@ -1,24 +1,4 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 25.09.2023 18:46:51
-// Design Name: 
-// Module Name: timer_32
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
 
 module timer_32 (
         input[7:0]  TCR_VAL,
@@ -29,8 +9,10 @@ module timer_32 (
     );
     
     wire[7:0]       IR, TCR;
-    wire[31:0]      MR0, MR1, MR2, MR3;
+    wire[31:0]      PR, MR0, MR1, MR2, MR3;
     wire[15:0]      MCR;
+    
+    wire[31:0]      TC, PC;
     
     reg[7:0]        SET_IR, SET_TCR;
     
@@ -42,7 +24,7 @@ module timer_32 (
     reg             TIMER_CLK;
     reg             SET_TIMER_CLK;
     
-    reg             TIMER_MATCH;
+     
     
     register_N #(.SIZE(8)) INTERRUPT_REGISTER(IR, SET_IR, clk, reset);
     register_N #(.SIZE(8)) TIMER_CONTROL_REGISTER(TCR, SET_TCR, clk, reset);
@@ -64,6 +46,19 @@ module timer_32 (
             TC_RESET <= 1'b1;
             PC_RESET <= 1'b1;
             SET_IR <= {8{1'b0}};
+            
+            SET_TC_RESET <= 1'b1;
+            SET_PC_RESET <= 1'b1;
+            
+            SET_TCR <= TCR_VAL;
+            
+            TIMER_CLK <= 1'b1;
+            SET_TIMER_CLK <= 1'b0;
+            
+            COUNTER_ENABLE <= 1'b0;
+            COUNTER_RESET <= 1'b0;
+            
+            
         end
         else begin
            SET_TCR <= TCR_VAL;
@@ -75,7 +70,6 @@ module timer_32 (
         end
     end
     
-    // PRESCALER
     always@(posedge clk) begin
         if(COUNTER_RESET) begin
             SET_TC_RESET <= 1'b1;
@@ -96,12 +90,31 @@ module timer_32 (
     
     // TIMER
     always@(posedge clk) begin
-         if((TC == MR0) && (MCR[0])) SET_IR[0] <= 1'b1;
-         if((TC == MR1) && (MCR[3])) SET_IR[1] <= 1'b1;
-         if((TC == MR2) && (MCR[6])) SET_IR[2] <= 1'b1;
-         if((TC == MR3) && (MCR[9])) SET_IR[3] <= 1'b1;
-         SET_TC_RESET <= |{MCR[1], MCR[4], MCR[7], MCR[10]};
-         SET_TCR[0] <= |{MCR[2], MCR[5], MCR[8], MCR[11]};
+
+         if((TC == MR0)) begin
+            SET_IR[0] <= MCR[0]? 8'h1: 8'd0;
+            SET_TC_RESET <= MCR[1]? 1'b1: 1'b0;
+            SET_TCR[0] <= MCR[2]? 1'b0: TCR[0];
+         end
+        
+        if((TC == MR1)) begin
+            SET_IR[1] <= MCR[3]? 8'h1: 8'd0;
+            SET_TC_RESET <= MCR[4]? 1'b1: 1'b0;
+            SET_TCR[0] <= MCR[5]? 1'b0: TCR[0];
+         end
+         
+         if((TC == MR2)) begin
+            SET_IR[2] <= MCR[6]? 8'h1: 8'd0;
+            SET_TC_RESET <= MCR[7]? 1'b1: 1'b0;
+            SET_TCR[0] <= MCR[8]? 1'b0: TCR[0];
+         end
+         
+         if((TC == MR3)) begin
+            SET_IR[3] <= MCR[9]? 8'h1: 8'd0;
+            SET_TC_RESET <= MCR[10]? 1'b1: 1'b0;
+            SET_TCR[0] <= MCR[11]? 1'b0: TCR[0];
+         end
+         
     end
     
 endmodule
