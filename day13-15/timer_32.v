@@ -17,20 +17,16 @@ module timer_32 (
     reg[7:0]        SET_IR, SET_TCR;
     
     reg             TC_RESET, PC_RESET;
-    reg             SET_TC_RESET, SET_PC_RESET;
     
     reg             COUNTER_ENABLE, COUNTER_RESET;
     
-    reg             TIMER_CLK;
-    reg             SET_TIMER_CLK;
-    
-     
+    reg             T_CLK, P_CLK;     
     
     register_N #(.SIZE(8)) INTERRUPT_REGISTER(IR, SET_IR, clk, reset);
     register_N #(.SIZE(8)) TIMER_CONTROL_REGISTER(TCR, SET_TCR, clk, reset);
     
-    counter_32 TIMER_COUNTER(TC, TIMER_CLK, TC_RESET);
-    counter_32 PRESCALE_COUNTER(PC, clk, PC_RESET);
+    counter_32 TIMER_COUNTER(TC, T_CLK, TC_RESET);
+    counter_32 PRESCALE_COUNTER(PC, P_CLK, PC_RESET);
     
     register_N #(.SIZE(32)) PRESCALE_REGISTER(PR, PR_VAL, clk, reset);
     
@@ -41,80 +37,94 @@ module timer_32 (
 
     register_N #(.SIZE(16)) MATCH_CONTROL_REGISTER(MCR, MCR_VAL, clk, reset);
     
-    always@(posedge clk, posedge reset) begin
-        if(reset) begin
-            TC_RESET <= 1'b1;
-            PC_RESET <= 1'b1;
-            SET_IR <= {8{1'b0}};
-            
-            SET_TC_RESET <= 1'b1;
-            SET_PC_RESET <= 1'b1;
-            
-            SET_TCR <= TCR_VAL;
-            
-            TIMER_CLK <= 1'b1;
-            SET_TIMER_CLK <= 1'b0;
-            
-            COUNTER_ENABLE <= 1'b0;
-            COUNTER_RESET <= 1'b0;
-            
-            
-        end
-        else begin
-           SET_TCR <= TCR_VAL;
-           COUNTER_ENABLE <= TCR[0];
-           COUNTER_RESET <= TCR[1]; 
-           TC_RESET <= SET_TC_RESET;
-           PC_RESET <= SET_PC_RESET;
-           TIMER_CLK <= SET_TIMER_CLK;
-        end
+    always@(TCR_VAL) begin
+        if(reset) SET_TCR <= {8{1'b0}};
+        else SET_TCR <= TCR_VAL;
     end
-    
+
+    // PRESCALER
     always@(posedge clk) begin
-        if(COUNTER_RESET) begin
-            SET_TC_RESET <= 1'b1;
-            SET_PC_RESET <= 1'b1;
+        if(reset || COUNTER_RESET) begin 
+            PC_RESET <= 1'b1;
+            T_CLK <= 1'b1;
+            P_CLK <= 1'b1;
         end
         else if(COUNTER_ENABLE) begin
-            SET_TC_RESET <= 1'b0;
-            SET_PC_RESET <= 1'b0;
-            SET_IR <= {8{1'b0}};
-            SET_TIMER_CLK <= 1'b0;
-            
+            P_CLK <= 1'b1;
             if(PC == PR) begin
-                SET_TIMER_CLK <= 1'b1;
-                SET_PC_RESET <= 1'b1;
+                PC_RESET <= 1'b1;
+                T_CLK <= 1'b1;
             end
         end
     end
     
     // TIMER
     always@(posedge clk) begin
-
-         if((TC == MR0)) begin
-            SET_IR[0] <= MCR[0]? 8'h1: 8'd0;
-            SET_TC_RESET <= MCR[1]? 1'b1: 1'b0;
-            SET_TCR[0] <= MCR[2]? 1'b0: TCR[0];
-         end
-        
-        if((TC == MR1)) begin
-            SET_IR[1] <= MCR[3]? 8'h1: 8'd0;
-            SET_TC_RESET <= MCR[4]? 1'b1: 1'b0;
-            SET_TCR[0] <= MCR[5]? 1'b0: TCR[0];
-         end
-         
-         if((TC == MR2)) begin
-            SET_IR[2] <= MCR[6]? 8'h1: 8'd0;
-            SET_TC_RESET <= MCR[7]? 1'b1: 1'b0;
-            SET_TCR[0] <= MCR[8]? 1'b0: TCR[0];
-         end
-         
-         if((TC == MR3)) begin
-            SET_IR[3] <= MCR[9]? 8'h1: 8'd0;
-            SET_TC_RESET <= MCR[10]? 1'b1: 1'b0;
-            SET_TCR[0] <= MCR[11]? 1'b0: TCR[0];
-         end
-         
+        if(reset) begin
+            SET_IR <= {8{1'b0}};
+            TC_RESET <= 1'b1;
+            COUNTER_ENABLE <= 1'b0;
+            COUNTER_RESET <= 1'b0;  
+        end
+        else begin
+            COUNTER_RESET <= SET_TCR[1];
+            COUNTER_ENABLE <= SET_TCR[0];
+            if(COUNTER_RESET) TC_RESET <= 1'b1;
+            else if(COUNTER_ENABLE) begin
+                TC_RESET <= 1'b0;
+                
+                if((TC == MR0)) begin
+                    if(MCR[0]) SET_IR[0] <= 8'h1;
+                    if(MCR[1] && (PC == PR)) TC_RESET <= 1'b1;
+                    if(MCR[2]) begin 
+                        SET_TCR[0] <= 1'b0;
+                        COUNTER_ENABLE <= 1'b0; 
+                        T_CLK <= 1'b0;
+                        P_CLK <= 1'b0;
+                    end
+                end
+                if((TC == MR1)) begin
+                    if(MCR[3]) SET_IR[1] <= 8'h1;
+                    if(MCR[4] && (PC == PR)) TC_RESET <= 1'b1;
+                    if(MCR[5]) begin 
+                        SET_TCR[0] <= 1'b0;
+                        COUNTER_ENABLE <= 1'b0; 
+                        T_CLK <= 1'b0;
+                        P_CLK <= 1'b0;
+                    end
+                end
+                if((TC == MR2)) begin
+                    if(MCR[6]) SET_IR[2] <= 8'h1;
+                    if(MCR[7] && (PC == PR)) TC_RESET <= 1'b1;
+                    if(MCR[8]) begin 
+                        SET_TCR[0] <= 1'b0;
+                        COUNTER_ENABLE <= 1'b0; 
+                        T_CLK <= 1'b0;
+                        P_CLK <= 1'b0;
+                    end
+                end
+                if((TC == MR3)) begin
+                    if(MCR[9]) SET_IR[3] <= 8'h1;
+                    if(MCR[10] && (PC == PR)) TC_RESET <= 1'b1;
+                    if(MCR[11]) begin 
+                        SET_TCR[0] <= 1'b0;
+                        COUNTER_ENABLE <= 1'b0; 
+                        T_CLK <= 1'b0;
+                        P_CLK <= 1'b0;
+                    end
+                end
+            end
+        end            
+    end
+    
+    // RESET
+    always@(negedge clk) begin
+        if(!reset && COUNTER_ENABLE && !COUNTER_RESET) begin
+            TC_RESET <= 1'b0;
+            PC_RESET <= 1'b0;
+            T_CLK <= 1'b0;
+            P_CLK <= 1'b0;
+        end
     end
     
 endmodule
