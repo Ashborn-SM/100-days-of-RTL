@@ -5,7 +5,7 @@ module counter_32(
         input clk, reset
     );
     reg[31:0] counter;
-    always@(posedge clk) begin
+    always@(posedge clk, posedge reset) begin
         if(reset) counter = {32{1'b0}};
         else counter <= counter + 1;
     end
