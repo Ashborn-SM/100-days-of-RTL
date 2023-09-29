@@ -7,7 +7,7 @@ module spi
     // SPI_MODE = 2 --> CPOL = 1, CPHA = 0
     // SPI_MODE = 3 --> CPOL = 1, CPHA = 1
     
-        parameter           SPI_MODE = 0,
+        parameter           SPI_MODE = 2,
                             CLOCK_DIVIDER = 4
     )
     (   
@@ -26,7 +26,8 @@ module spi
         // SPI interface
         output reg          o_SCLK,         // Serial clock
         output reg          o_MOSI,         // Data out
-        input               i_MISO          // Data in
+        input               i_MISO,         // Data in
+        output reg          CS             // Chip Select
 );
 
     
@@ -41,6 +42,7 @@ module spi
     reg[2:0]                        rx_counter;
     reg[7:0]                        tx_data;
     reg                             tx_dv;
+    reg                             rx_dv;
     
     assign CPOL = (SPI_MODE & 2'b10) >> 1;
     assign CPHA = SPI_MODE & 2'b01;
@@ -54,12 +56,14 @@ module spi
             falling_edge <= 1'b0;
             edge_counter <= 4'h0;
             SPI_CLK <= CPOL;
+            CS <= 1'b1;
         end
         else begin
             rising_edge <= 1'b0;
             falling_edge <= 1'b0;
             if(i_TX_DV) begin
                 o_TX_READY <= 1'b0;
+                CS <= 1'b0;
                 edge_counter <= 5'h10;
             end
             else if(edge_counter > 0) begin
@@ -77,7 +81,10 @@ module spi
                 end
                 else sclk_counter <= sclk_counter + 1;
             end
-            else o_TX_READY <= 1'b1;
+            else begin
+                o_TX_READY <= 1'b1;
+                CS <= 1'b1;
+            end
         end
     end
     
@@ -88,7 +95,10 @@ module spi
     
     // Store data
     always@(posedge P_clk, posedge reset) begin
-        if(reset) tx_data <= 8'h0;
+        if(reset) begin 
+            tx_data <= 8'h0;
+            tx_dv <= 1'b0;
+        end
         else begin
             tx_dv <= i_TX_DV;
             if(i_TX_DV) tx_data <= i_TX_DATA;
@@ -114,6 +124,26 @@ module spi
         end
     end
     
-     
+    // MISO
+    always@(posedge P_clk, posedge reset) begin
+        if(reset) begin
+            rx_counter <= 3'b000;
+            o_RX_DATA <= 8'h0;
+            o_RX_DV <= 1'b0;
+            rx_dv <= 1'b0;
+        end
+        else begin
+            o_RX_DV <= 1'b0;
+            if(i_TX_DV) begin 
+                rx_dv <= 1'b0;
+            end
+            if(o_TX_READY) rx_counter <= 3'b111;
+            else if((rising_edge & ~CPHA) | (falling_edge & CPHA)) begin
+                o_RX_DATA[rx_counter] <= i_MISO;
+                rx_counter <= rx_counter - 1;
+                if(rx_counter == 3'b000) o_RX_DV <= 1'b1;
+            end
+        end
+    end
 
 endmodule
