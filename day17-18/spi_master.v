@@ -98,9 +98,11 @@ module spi
         if(reset) begin 
             tx_data <= 8'h0;
             tx_dv <= 1'b0;
+            o_RX_DV <= 1'b0;
         end
         else begin
             tx_dv <= i_TX_DV;
+            o_RX_DV <= rx_dv;
             if(i_TX_DV) tx_data <= i_TX_DATA;
         end
     end
@@ -109,7 +111,7 @@ module spi
     always@(posedge P_clk, posedge reset) begin
         if(reset) begin
             tx_counter <= 3'b000;
-            o_MOSI <= 1'b0;
+            o_MOSI <= 1'bZ;
         end
         else begin
             if(o_TX_READY) tx_counter <= 3'b111; 
@@ -133,15 +135,12 @@ module spi
             rx_dv <= 1'b0;
         end
         else begin
-            o_RX_DV <= 1'b0;
-            if(i_TX_DV) begin 
-                rx_dv <= 1'b0;
-            end
+             rx_dv <= 1'b0;
             if(o_TX_READY) rx_counter <= 3'b111;
             else if((rising_edge & ~CPHA) | (falling_edge & CPHA)) begin
                 o_RX_DATA[rx_counter] <= i_MISO;
                 rx_counter <= rx_counter - 1;
-                if(rx_counter == 3'b000) o_RX_DV <= 1'b1;
+                if(rx_counter == 3'b000) rx_dv <= 1'b1;
             end
         end
     end
